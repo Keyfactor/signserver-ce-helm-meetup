@@ -1,0 +1,150 @@
+# Default values for signserver-ce-helm-meetup.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+signserver:
+  useProxyAjpBind: true
+  useProxyHttpBind: false
+  managementCaSecret: "ingress-ca"
+  useH2Database: false
+  importKeystore: true
+  # Keystore files can me mounted for use with SignServer crypto workers
+  keystoreMountPath: /mnt/external
+  keystores:
+#    - keystore: signer_keystore.p12
+
+# Use if signserver.useH2Database is false
+database:
+  name: signserver
+  username: signserver
+  password: signserver
+  localDeployment:
+    # If deployDatabase is enabled, a pod is deployed with a ClusterIP service
+    deployDatabase: true
+    # A secret is also created containing the credentials
+    passwordRoot: foo123
+    image:
+      repository: mariadb
+      tag: "10.5"
+      pullPolicy: IfNotPresent
+    mariaddbConf: |-
+      # MariaDB database server configuration file.
+      #
+      # For explanations see
+      # https://mariadb.com/kb/en/library/server-system-variables/
+      # https://mariadb.com/kb/en/library/xtradbinnodb-server-system-variables/
+      # https://mariadb.com/kb/en/library/galera-cluster-system-variables/
+      # https://mariadb.com/kb/en/library/wsrep_provider_options/
+      [mysqld]
+      character-set-server    = utf8
+      collation-server        = utf8_bin
+      max_connections         = 100
+      skip-ssl
+      max_allowed_packet      = 128M
+      query_cache_type        = OFF
+      innodb_buffer_pool_dump_at_shutdown = OFF
+      innodb_buffer_pool_load_at_startup  = OFF
+      transaction-isolation   = REPEATABLE-READ
+      innodb_flush_log_at_trx_commit = 1
+      innodb_autoinc_lock_mode       = 2
+      slave_exec_mode         = IDEMPOTENT
+      innodb_buffer_pool_size = 384M
+      innodb_log_file_size    = 64M
+      binlog_format           = row
+  # If deployDatabase is true, host is used as the name label used by a database deployment and associated service
+  host: database-svc
+  port: 3306
+  # Database secret name is required to securely retrieve database credentials. Used regardless of localDeployment state
+  secretName: signserver-database-credentials
+
+replicaCount: 1
+
+image:
+  repository: keyfactor/signserver-ce
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion
+  tag: "latest"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+podAnnotations: {}
+
+podSecurityContext: {}
+  # fsGroup: 2000
+
+securityContext: {}
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+  # runAsUser: 1000
+
+# ToDo handle PROXY_HTTP_BIND with two ports
+service:
+  type: ClusterIP
+  port: 8009
+#service:
+#  type: NodePort
+#  port: 443
+
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:  
+    # Use AJP for communication with SignServer
+    nginx.ingress.kubernetes.io/backend-protocol: "AJP"
+    # Enable optional client certificate authentication
+    nginx.ingress.kubernetes.io/auth-tls-verify-client: "optional"
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    # Create the secret containing the trusted CA certificates
+    nginx.ingress.kubernetes.io/auth-tls-secret: "default/ingress-ca"
+    # Specify the verification depth in the client certificates chain
+    nginx.ingress.kubernetes.io/auth-tls-verify-depth: "1"
+    # Specify if certificates are passed to upstream server
+    nginx.ingress.kubernetes.io/auth-tls-pass-certificate-to-upstream: "true"    
+  hosts:
+    - host: minikube
+      paths:
+        - path: /signserver/
+          pathType: Prefix
+  tls: []
+  #  - secretName: chart-example-tls
+  #    hosts:
+  #      - chart-example.local
+
+resources: {}
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  # limits:
+  #   cpu: 100m
+  #   memory: 128Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 100
+  targetCPUUtilizationPercentage: 80
+  # targetMemoryUtilizationPercentage: 80
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}

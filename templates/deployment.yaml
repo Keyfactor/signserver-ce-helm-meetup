@@ -1,0 +1,131 @@
+{{- if not .Values.signserver.useH2Database }}
+{{- if .Values.database.localDeployment.deployDatabase }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "signserver-ce-helm-meetup.fullname" . }}
+  labels:
+    {{- include "signserver-ce-helm-meetup.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "signserver-ce-helm-meetup.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "signserver-ce-helm-meetup.selectorLabels" . | nindent 8 }}
+    spec:
+      serviceAccountName: {{ include "signserver-ce-helm-meetup.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            {{- if .Values.signserver.useProxyAjpBind }}
+            - containerPort: 8009
+              name: ajp
+            {{- else if .Values.signserver.useProxyHttpBind }}
+            - containerPort: 8081
+              name: http-pub
+            - containerPort: 8082
+              name: http-priv
+            {{- else }}
+            - containerPort: 8080
+              name: http
+            - containerPort: 8443
+              name: https
+            {{- end }}
+          env:
+            {{- if not .Values.signserver.useH2Database }}
+            - name: DATABASE_JDBC_URL
+              value: jdbc:mysql://{{ .Values.database.host }}:{{ .Values.database.port }}/{{ .Values.database.name }}?characterEncoding=utf8
+            - name: DATABASE_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.database.secretName }}
+                  key: username
+            - name: DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.database.secretName }}
+                  key: password
+            {{- end }}
+            {{- if .Values.signserver.useProxyAjpBind }}
+            - name: PROXY_AJP_BIND
+              value: 0.0.0.0
+            {{- end }}
+            {{- if .Values.signserver.useProxyHttpBind }}
+            - name: PROXY_HTTP_BIND
+              value: 0.0.0.0
+            {{- end }}
+          startupProbe:
+            tcpSocket:
+              {{- if .Values.signserver.useProxyAjpBind }}
+              port: 8009
+              {{- else if .Values.signserver.useProxyHttpBind }}
+              port: 8082
+              {{- else }}
+              port: 8443
+              {{- end }}
+            initialDelaySeconds: 15
+            periodSeconds: 2
+            failureThreshold: 50
+# ToDo
+#    livenessProbe:
+#    readinessProbe
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            {{- if .Values.signserver.importKeystore }}
+            {{- $keystoreMountPath := .Values.signserver.keystoreMountPath }}
+            {{- range .Values.signserver.keystores }}
+            - name: signserver-config-keystore
+              mountPath: {{ $keystoreMountPath }}/{{ .keystore }}
+              subPath: {{ .keystore }}
+            {{- end }}
+            {{- end }}
+            - name: signserver-config-managementca
+              mountPath: /mnt/external/secrets/tls/cas/ManagementCA.crt
+              subPath: ManagementCA.crt
+      volumes:
+        {{- if .Values.signserver.importKeystore }}
+        - name: signserver-config-keystore
+          configMap:
+            name: {{ include "signserver-ce-helm-meetup.fullname" . }}
+            items:
+              {{- range .Values.signserver.keystores }}
+              - key: {{ .keystore }}
+                path: {{ .keystore }}
+              {{- end }}
+        {{- end }}
+        - name: signserver-config-managementca
+          secret:
+            secretName: {{ .Values.signserver.managementCaSecret }}
+            items:
+              - key: ca.crt
+                path: ManagementCA.crt
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}
+{{- end }}

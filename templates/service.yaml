@@ -1,0 +1,32 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "signserver-ce-helm-meetup.fullname" . }}
+  labels:
+    {{- include "signserver-ce-helm-meetup.labels" . | nindent 4 }}
+spec:
+  selector:
+    app: signserver-ce
+  type: {{ .Values.service.type }}
+  ports:
+    {{- if .Values.signserver.useProxyAjpBind }}
+    - port: {{ .Values.service.port }}
+      targetPort: ajp
+      protocol: TCP
+      name: ajp
+    # ToDo use two different ports
+    {{- else if .Values.signserver.useProxyHttpBind }}
+    - port: {{ .Values.service.port }}
+      targetPort: http-priv
+      protocol: TCP
+      name: http-priv
+    {{- else }}
+    # ToDo use two different ports
+    - port: {{ .Values.service.port }}
+      nodePort: {{ .Values.service.port }}
+      targetPort: https
+      protocol: TCP
+      name: https
+    {{- end }}
+  selector:
+    {{- include "signserver-ce-helm-meetup.selectorLabels" . | nindent 4 }}

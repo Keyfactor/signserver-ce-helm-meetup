@@ -1,0 +1,51 @@
+{{- if not .Values.signserver.useH2Database }}
+{{- if .Values.database.localDeployment.deployDatabase }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.database.host }}
+  labels:
+    {{- include "signserver-ce-helm-meetup.database.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "signserver-ce-helm-meetup.database.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "signserver-ce-helm-meetup.database.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: {{ .Values.database.host }}
+          image: "{{ .Values.database.localDeployment.image.repository }}:{{ .Values.database.localDeployment.image.tag }}"
+          imagePullPolicy: {{ .Values.database.localDeployment.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.database.port }}
+              protocol: TCP
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.database.secretName }}
+                  key: password-root
+            - name: MYSQL_DATABASE
+              value: {{ .Values.database.name }}
+            - name: MYSQL_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.database.secretName }}
+                  key: username
+            - name: MYSQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.database.secretName }}
+                  key: password
+          volumeMounts:
+            - name: {{ .Values.database.host }}
+              mountPath: /etc/mysql/config.d/
+      volumes:
+        - name: {{ .Values.database.host }}
+          configMap:
+            name: {{ .Values.database.host }}
+{{- end }}
+{{- end }}

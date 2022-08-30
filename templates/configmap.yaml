@@ -1,0 +1,13 @@
+{{- if .Values.signserver.importKeystore -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "signserver-ce-helm-meetup.fullname" . }}
+  labels:
+    {{- include "signserver-ce-helm-meetup.labels" . | nindent 4 }}
+binaryData:
+  {{- $files := .Files }}
+  {{- range .Values.signserver.keystores }}
+  {{ .keystore }}: {{ $files.Get .keystore | b64enc | nindent 4 }}
+  {{- end }}
+{{- end }}

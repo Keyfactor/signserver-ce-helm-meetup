@@ -1,0 +1,15 @@
+{{- if not .Values.signserver.useH2Database }}
+{{- if .Values.database.localDeployment.deployDatabase }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.database.host }}
+  labels:
+    {{- include "signserver-ce-helm-meetup.database.labels" . | nindent 4 }}
+data:
+  {{- with .Values.database.localDeployment.mariaddbConf }}
+  custom.cnf: |+
+    {{- . | nindent 4 }}
+  {{- end }}
+{{- end }}
+{{- end }}
