@@ -81,9 +81,15 @@ spec:
             initialDelaySeconds: 15
             periodSeconds: 2
             failureThreshold: 50
-# ToDo
-#    livenessProbe:
-#    readinessProbe
+          livenessProbe:
+            tcpSocket:
+              {{- if .Values.signserver.useProxyAjpBind }}
+              port: 8009
+              {{- else if .Values.signserver.useProxyHttpBind }}
+              port: 8082
+              {{- else }}
+              port: 8443
+              {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           volumeMounts:
