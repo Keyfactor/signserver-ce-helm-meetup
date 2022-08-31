@@ -122,6 +122,10 @@ ingress:
     nginx.ingress.kubernetes.io/auth-tls-verify-depth: "1"
     # Specify if certificates are passed to upstream server
     nginx.ingress.kubernetes.io/auth-tls-pass-certificate-to-upstream: "true"    
+    # Configure sticky sessions if using more than one replica
+    #nginx.ingress.kubernetes.io/affinity: "cookie"
+    #nginx.ingress.kubernetes.io/session-cookie-name: "SIGNSERVERCOOKIE"
+    #nginx.ingress.kubernetes.io/session-cookie-max-age: "172800"
   hosts:
     - host: minikube
       paths:
