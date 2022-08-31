@@ -52,7 +52,7 @@ database:
       innodb_log_file_size    = 64M
       binlog_format           = row
   # If deployDatabase is true, host is used as the name label used by a database deployment and associated service
-  host: database-svc
+  host: signserver-database-svc
   port: 3306
   # Database secret name is required to securely retrieve database credentials. Used regardless of localDeployment state
   secretName: signserver-database-credentials
