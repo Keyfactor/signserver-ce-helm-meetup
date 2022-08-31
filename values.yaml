@@ -27,7 +27,7 @@ database:
       repository: mariadb
       tag: "10.5"
       pullPolicy: IfNotPresent
-    mariaddbConf: |-
+    mariadbConf: |-
       # MariaDB database server configuration file.
       #
       # For explanations see
