@@ -5,10 +5,10 @@
 signserver:
   useProxyAjpBind: true
   useProxyHttpBind: false
-  managementCaSecret: "ingress-ca"
+  managementCaSecret: ingress-ca
   useH2Database: false
+  # Keystore files can be mounted for use with SignServer crypto workers
   importKeystore: true
-  # Keystore files can me mounted for use with SignServer crypto workers
   keystoreMountPath: /mnt/external
   keystores:
 #    - keystore: signer_keystore.p12
@@ -91,7 +91,6 @@ securityContext: {}
   # runAsNonRoot: true
   # runAsUser: 1000
 
-# ToDo handle PROXY_HTTP_BIND with two ports
 service:
   type: ClusterIP
   port: 8009
@@ -105,12 +104,18 @@ service:
 ingress:
   enabled: true
   className: "nginx"
-  annotations:  
+  annotations:
     # Use AJP for communication with SignServer
     nginx.ingress.kubernetes.io/backend-protocol: "AJP"
+    # Use following lines instead of backend-protocol: "AJP" if useProxyHttpBind is enabled
+    #nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
+    #nginx.ingress.kubernetes.io/configuration-snippet: |
+    #  proxy_set_header SSL_CLIENT_CERT $ssl_client_cert;
+    #  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    # Don't redirect HTTP to HTTPS
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
     # Enable optional client certificate authentication
     nginx.ingress.kubernetes.io/auth-tls-verify-client: "optional"
-    nginx.ingress.kubernetes.io/ssl-redirect: "false"
     # Create the secret containing the trusted CA certificates
     nginx.ingress.kubernetes.io/auth-tls-secret: "default/ingress-ca"
     # Specify the verification depth in the client certificates chain
