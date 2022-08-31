@@ -95,9 +95,11 @@ spec:
               subPath: {{ .keystore }}
             {{- end }}
             {{- end }}
+            {{- if not (or .Values.signserver.useProxyAjpBind .Values.signserver.useProxyHttpBind) }}
             - name: signserver-config-managementca
               mountPath: /mnt/external/secrets/tls/cas/ManagementCA.crt
               subPath: ManagementCA.crt
+            {{- end }}
       volumes:
         {{- if .Values.signserver.importKeystore }}
         - name: signserver-config-keystore
@@ -109,12 +111,14 @@ spec:
                 path: {{ .keystore }}
               {{- end }}
         {{- end }}
+        {{- if not (or .Values.signserver.useProxyAjpBind .Values.signserver.useProxyHttpBind) }}
         - name: signserver-config-managementca
           secret:
             secretName: {{ .Values.signserver.managementCaSecret }}
             items:
               - key: ca.crt
                 path: ManagementCA.crt
+        {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
