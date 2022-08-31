@@ -47,6 +47,8 @@ spec:
               name: https
             {{- end }}
           env:
+            - name: LOG_LEVEL_APP
+              value: {{ .Values.signserver.logLevelApp | default "INFO" | quote }}
             {{- if not .Values.signserver.useH2Database }}
             - name: DATABASE_JDBC_URL
               value: jdbc:mysql://{{ .Values.database.host }}:{{ .Values.database.port }}/{{ .Values.database.name }}?characterEncoding=utf8

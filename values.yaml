@@ -3,6 +3,7 @@
 # Declare variables to be passed into your templates.
 
 signserver:
+  logLevelApp: INFO
   useProxyAjpBind: true
   useProxyHttpBind: false
   managementCaSecret: ingress-ca
