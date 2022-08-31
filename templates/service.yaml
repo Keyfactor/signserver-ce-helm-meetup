@@ -14,14 +14,25 @@ spec:
       targetPort: ajp
       protocol: TCP
       name: ajp
-    # ToDo use two different ports
     {{- else if .Values.signserver.useProxyHttpBind }}
+    {{ if .Values.httpService }}
+    - port: {{ .Values.httpService.port }}
+      targetPort: http-pub
+      protocol: TCP
+      name: http-pub
+    {{- end }}
     - port: {{ .Values.service.port }}
       targetPort: http-priv
       protocol: TCP
       name: http-priv
     {{- else }}
-    # ToDo use two different ports
+    {{ if .Values.httpService }}
+    - port: {{ .Values.httpService.port }}
+      nodePort: {{ .Values.httpService.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+    {{- end }}
     - port: {{ .Values.service.port }}
       nodePort: {{ .Values.service.port }}
       targetPort: https
