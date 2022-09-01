@@ -106,29 +106,29 @@ ingress:
   enabled: true
   className: "nginx"
   annotations:
-    # Use AJP for communication with SignServer
+    ## Use AJP for communication with SignServer
     nginx.ingress.kubernetes.io/backend-protocol: "AJP"
-    # Use following lines instead of backend-protocol: "AJP" if useProxyHttpBind is enabled
+    ## Use following lines instead of backend-protocol: "AJP" if useProxyHttpBind is enabled
     #nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
     #nginx.ingress.kubernetes.io/configuration-snippet: |
     #  proxy_set_header SSL_CLIENT_CERT $ssl_client_cert;
     #  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    # Don't redirect HTTP to HTTPS
+    ## Don't redirect HTTP to HTTPS
     nginx.ingress.kubernetes.io/ssl-redirect: "false"
-    # Enable optional client certificate authentication
+    ## Enable optional client certificate authentication
     nginx.ingress.kubernetes.io/auth-tls-verify-client: "optional"
-    # Create the secret containing the trusted CA certificates
-    nginx.ingress.kubernetes.io/auth-tls-secret: "default/ingress-ca"
-    # Specify the verification depth in the client certificates chain
+    ## Create the secret containing the trusted CA certificates
+    nginx.ingress.kubernetes.io/auth-tls-secret: "signserver/ingress-ca"
+    ## Specify the verification depth in the client certificates chain
     nginx.ingress.kubernetes.io/auth-tls-verify-depth: "1"
-    # Specify if certificates are passed to upstream server
-    nginx.ingress.kubernetes.io/auth-tls-pass-certificate-to-upstream: "true"    
-    # Configure sticky sessions if using more than one replica
+    ## Specify if certificates are passed to upstream server
+    nginx.ingress.kubernetes.io/auth-tls-pass-certificate-to-upstream: "true"
+    ## Configure sticky sessions if using more than one replica
     #nginx.ingress.kubernetes.io/affinity: "cookie"
     #nginx.ingress.kubernetes.io/session-cookie-name: "SIGNSERVERCOOKIE"
     #nginx.ingress.kubernetes.io/session-cookie-max-age: "172800"
   hosts:
-    - host: minikube
+    - host: "my.local.minikube"
       paths:
         - path: /signserver/
           pathType: Prefix
