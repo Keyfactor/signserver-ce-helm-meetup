@@ -6,7 +6,7 @@ signserver:
   logLevelApp: INFO
   useProxyAjpBind: true
   useProxyHttpBind: false
-  managementCaSecret: ingress-ca
+  managementCaSecret: ca-secret
   useH2Database: false
   # Keystore files can be mounted for use with SignServer crypto workers
   importKeystore: true
@@ -118,7 +118,7 @@ ingress:
     ## Enable optional client certificate authentication
     nginx.ingress.kubernetes.io/auth-tls-verify-client: "optional"
     ## Create the secret containing the trusted CA certificates
-    nginx.ingress.kubernetes.io/auth-tls-secret: "signserver/ingress-ca"
+    nginx.ingress.kubernetes.io/auth-tls-secret: "signserver/ca-secret"
     ## Specify the verification depth in the client certificates chain
     nginx.ingress.kubernetes.io/auth-tls-verify-depth: "1"
     ## Specify if certificates are passed to upstream server
