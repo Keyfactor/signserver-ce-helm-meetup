@@ -1,3 +1,40 @@
+# Workshop Part 2a: ​Deploying SignServer ​with Helm​
+
+## Clone SignServer Helm Repo​
+
+```shell
+git clone https://github.com/Keyfactor/signserver-ce-helm-meetup.git
+```​
+
+## Configure Authentication Secret​
+
+```shell
+kubectl create namespace signserver​
+```​
+
+```shell
+kubectl create secret generic ingress-ca --from-file=ca.crt=ManagementCA.pem -n signserver
+```​
+
+## Install SignServer​ Helm Chart​
+
+Edit helm chart values.yaml file:​
+```shell
+vi signserver-ce-helm-meetup/values.yaml
+```​
+
+Install SignServer with Helm:​
+```shell
+cd signserver-ce-helm-meetup​
+helm install signserver-ce . --atomic -n signserver​
+```​
+
+Confirm that the deployments completed:​
+```shell
+kubectl get deployments -n signserver
+```​
+
+
 Configure Kubernetes to verify signatures on container from ttl.sh
 ------------------------------------------------------------------
 
