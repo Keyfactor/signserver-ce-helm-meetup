@@ -4,45 +4,47 @@
 
 ```shell
 git clone https://github.com/Keyfactor/signserver-ce-helm-meetup.git
-```​
+```
 
 ## Configure Authentication Secret​
 
 ```shell
 kubectl create namespace signserver​
-```​
+```
 
 ```shell
 kubectl create secret generic ingress-ca --from-file=ca.crt=ManagementCA.pem -n signserver
-```​
+```
 
 ## Install SignServer​ Helm Chart​
 
 Edit helm chart values.yaml file:​
 ```shell
 vi signserver-ce-helm-meetup/values.yaml
-```​
+```
 
 Install SignServer with Helm:​
 ```shell
 cd signserver-ce-helm-meetup​
 helm install signserver-ce . --atomic -n signserver​
-```​
+```
 
-Confirm that the deployments completed:​
+Confirm that the deployments are ready:
 ```shell
 kubectl get deployments -n signserver
-```​
+```
 
+# Workshop Part 2b: Container Signing with Cosign​
 
-Configure Kubernetes to verify signatures on container from ttl.sh
-------------------------------------------------------------------
+## Container Validation with Connaisseur​
 
-Extact public key from our SignServer P12 keystore
+Extract the public key from your signer keystore:​
+```shell
 openssl pkcs12 -in sample_signer_keystore.p12 -nokeys -clcerts | openssl x509 -pubkey -noout
+```
 
-Edit "connaisseur/helm/values.yaml"
-- Configure validators:
+Edit connaisseur/helm/values.yaml file:
+```shell
 validators:
   - name: allow
     type: static
@@ -53,64 +55,82 @@ validators:
       - name: default
         key: |
           -----BEGIN PUBLIC KEY-----
-          <Your PlainSigner Public Key>
+          MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEeFd2Qc/zkLJ0wI5htxILOcD9Xzyg
+          NrWseN4tSzxqMQVZM4TWBAAJpb09/gWxWxbbWJHDdM8SO8sRFvD3PAkmFQ==
           -----END PUBLIC KEY-----
 
-- Configure policy:
 policy:
+  # Allow all containers
   - pattern: "*:*"
     validator: allow
+  # Only allow signed containers from ttl.sh. Supersedes allow all
   - pattern: "ttl.sh/*:*"
     validator: signserver-cosign-signature
+```
 
-# Enable connaisseur verification
-helm install connaisseur connaisseur/helm --atomic --create-namespace --namespace connaisseur
+Install Connaisseur to enable container validation in Kubernetes:​
+```shell
+helm install connaisseur connaisseur/helm --atomic --create-namespace --namespace connaisseur​
+```
 
+## Create Container Image with Buildah​
 
-Create test container for signing
----------------------------------
-
-Create or copy a test Dockerfile:
-FROM alpine
-CMD ["echo", "Hello Tech Community!"]
-
-# Generate universally unique identifier (UUID) for our image name.
+Generate a UUID for the container name:
+```shell
 IMAGE_NAME=$(uuidgen)
-echo $IMAGE_NAME
+```
 
-# Build image from dockerfile and tag it with 1 hour (used when put into test registry).
+Build container image:
+```shell
 buildah build-using-dockerfile -f ./Dockerfile -t ttl.sh/${IMAGE_NAME}:1h .
+```
 
-# Push image to ttl.sh. It will remain there for 1 hour.
+## Push Container Image to ttl.sh Registry
+
+Upload your image to the test registry ttl.sh:
+```shell
 buildah push ttl.sh/${IMAGE_NAME}:1h
+```
 
-# Deploy unsigned container. It should be blocked by connaisseur for being unsigned
+Test deploying your unsigned image:
+```shell
 kubectl create deployment unsigned-container --image=ttl.sh/${IMAGE_NAME}:1h
+```
 
+## Sign Container Image with Cosign and SignServer
 
-Container Signing Procedure
----------------------------
-
-# Generate unsigned payload for your image
+Generate an unsigned payload for your image:
+```shell
 cosign generate ttl.sh/${IMAGE_NAME}:1h > ${IMAGE_NAME}-payload.json
+```
 
-# Sign the payload with SignServer
-curl -F workerName=PlainSigner -F file=@${IMAGE_NAME}-payload.json --output ${IMAGE_NAME}-payload.sig http://<EC2 Instance>/signserver/process
+Sign the payload with SignServer:
+```shell
+curl -F workerName=PlainSigner -F file=@${IMAGE_NAME}-payload.json --output ${IMAGE_NAME}-payload.sig http://<Your EC2 Instance>/signserver/process
+```
 
-# Convert signed payload to base64
+Convert signed payload to base64:
+```shell
 cat ${IMAGE_NAME}-payload.sig | base64 > ${IMAGE_NAME}-payload.sig.b64
+```
 
-# Attach signed payload to container image in registry
+Attach signed payload to your registry image:
+```shell
 cosign attach signature --payload ${IMAGE_NAME}-payload.json --signature ${IMAGE_NAME}-payload.sig.b64 ttl.sh/${IMAGE_NAME}:1h
+```
 
+## Verifying Signed Container Images
 
-Verifyring Container Signatures
--------------------------------
-
-# Manual verification with cosign
-cosign verify --cert <PlainSigner certificate> ttl.sh/${IMAGE_NAME}:1h
-
-# Deploy our signed image
+Deploy your signed image:
+```shell
 kubectl create deployment signed-container --image=ttl.sh/${IMAGE_NAME}:1h
+```
 
-# Go to SignServer archive to inspect what has been signed
+Manually verify image signatures with cosign:
+```shell
+cosign verify --cert <PlainSigner certificate> ttl.sh/${IMAGE_NAME}:1h​
+```
+or​
+```shell
+cosign verify –key <PlainSigner public key> ttl.sh/${IMAGE_NAME}:1h​
+```
