@@ -28,3 +28,52 @@ policy:
 
 # Enable connaisseur verification
 helm install connaisseur connaisseur/helm --atomic --create-namespace --namespace connaisseur
+
+
+Create test container for signing
+---------------------------------
+
+Create or copy a test Dockerfile:
+FROM alpine
+CMD ["echo", "Hello Tech Community!"]
+
+# Generate universally unique identifier (UUID) for our image name.
+IMAGE_NAME=$(uuidgen)
+echo $IMAGE_NAME
+
+# Build image from dockerfile and tag it with 1 hour (used when put into test registry).
+buildah build-using-dockerfile -f ./Dockerfile -t ttl.sh/${IMAGE_NAME}:1h .
+
+# Push image to ttl.sh. It will remain there for 1 hour.
+buildah push ttl.sh/${IMAGE_NAME}:1h
+
+# Deploy unsigned container. It should be blocked by connaisseur for being unsigned
+kubectl create deployment unsigned-container --image=ttl.sh/${IMAGE_NAME}:1h
+
+
+Container Signing Procedure
+---------------------------
+
+# Generate unsigned payload for your image
+cosign generate ttl.sh/${IMAGE_NAME}:1h > ${IMAGE_NAME}-payload.json
+
+# Sign the payload with SignServer
+curl -F workerName=PlainSigner -F file=@${IMAGE_NAME}-payload.json --output ${IMAGE_NAME}-payload.sig http://<EC2 Instance>/signserver/process
+
+# Convert signed payload to base64
+cat ${IMAGE_NAME}-payload.sig | base64 > ${IMAGE_NAME}-payload.sig.b64
+
+# Attach signed payload to container image in registry
+cosign attach signature --payload ${IMAGE_NAME}-payload.json --signature ${IMAGE_NAME}-payload.sig.b64 ttl.sh/${IMAGE_NAME}:1h
+
+
+Verifyring Container Signatures
+-------------------------------
+
+# Manual verification with cosign
+cosign verify --cert <PlainSigner certificate> ttl.sh/${IMAGE_NAME}:1h
+
+# Deploy our signed image
+kubectl create deployment signed-container --image=ttl.sh/${IMAGE_NAME}:1h
+
+# Go to SignServer archive to inspect what has been signed
