@@ -1,0 +1,30 @@
+Configure Kubernetes to verify signatures on container from ttl.sh
+------------------------------------------------------------------
+
+Extact public key from our SignServer P12 keystore
+openssl pkcs12 -in sample_signer_keystore.p12 -nokeys -clcerts | openssl x509 -pubkey -noout
+
+Edit "connaisseur/helm/values.yaml"
+- Configure validators:
+validators:
+  - name: allow
+    type: static
+    approve: true
+  - name: signserver-cosign-signature
+    type: cosign
+    trust_roots:
+      - name: default
+        key: |
+          -----BEGIN PUBLIC KEY-----
+          <Your PlainSigner Public Key>
+          -----END PUBLIC KEY-----
+
+- Configure policy:
+policy:
+  - pattern: "*:*"
+    validator: allow
+  - pattern: "ttl.sh/*:*"
+    validator: signserver-cosign-signature
+
+# Enable connaisseur verification
+helm install connaisseur connaisseur/helm --atomic --create-namespace --namespace connaisseur
