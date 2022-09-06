@@ -1,32 +1,32 @@
-# Workshop Part 2a: ​Deploying SignServer ​with Helm​
+# Workshop Part 2a: Deploying SignServer with Helm
 
-## Clone SignServer Helm Repo​
+## Clone SignServer Helm Repo
 
 ```shell
 git clone https://github.com/Keyfactor/signserver-ce-helm-meetup.git
 ```
 
-## Configure Authentication Secret​
+## Configure Authentication Secret
 
 ```shell
-kubectl create namespace signserver​
+kubectl create namespace signserver
 ```
 
 ```shell
 kubectl create secret generic ingress-ca --from-file=ca.crt=ManagementCA.pem -n signserver
 ```
 
-## Install SignServer​ Helm Chart​
+## Install SignServer​ Helm Chart
 
-Edit helm chart values.yaml file:​
+Edit helm chart values.yaml file:
 ```shell
 vi signserver-ce-helm-meetup/values.yaml
 ```
 
-Install SignServer with Helm:​
+Install SignServer with Helm:
 ```shell
-cd signserver-ce-helm-meetup​
-helm install signserver-ce . --atomic -n signserver​
+cd signserver-ce-helm-meetup
+helm install signserver-ce . --atomic -n signserver
 ```
 
 Confirm that the deployments are ready:
@@ -38,7 +38,7 @@ kubectl get deployments -n signserver
 
 ## Container Validation with Connaisseur​
 
-Extract the public key from your signer keystore:​
+Extract the public key from your signer keystore:
 ```shell
 openssl pkcs12 -in sample_signer_keystore.p12 -nokeys -clcerts | openssl x509 -pubkey -noout
 ```
@@ -68,12 +68,12 @@ policy:
     validator: signserver-cosign-signature
 ```
 
-Install Connaisseur to enable container validation in Kubernetes:​
+Install Connaisseur to enable container validation in Kubernetes:
 ```shell
-helm install connaisseur connaisseur/helm --atomic --create-namespace --namespace connaisseur​
+helm install connaisseur connaisseur/helm --atomic --create-namespace --namespace connaisseur
 ```
 
-## Create Container Image with Buildah​
+## Create Container Image with Buildah
 
 Generate a UUID for the container name:
 ```shell
@@ -128,9 +128,9 @@ kubectl create deployment signed-container --image=ttl.sh/${IMAGE_NAME}:1h
 
 Manually verify image signatures with cosign:
 ```shell
-cosign verify --cert <PlainSigner certificate> ttl.sh/${IMAGE_NAME}:1h​
+cosign verify --cert <PlainSigner certificate> ttl.sh/${IMAGE_NAME}:1h
 ```
-or​
+or
 ```shell
-cosign verify –-key <PlainSigner public key> ttl.sh/${IMAGE_NAME}:1h​
+cosign verify –-key <PlainSigner public key> ttl.sh/${IMAGE_NAME}:1h
 ```
