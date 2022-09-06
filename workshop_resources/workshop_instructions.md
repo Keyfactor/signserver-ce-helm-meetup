@@ -132,5 +132,5 @@ cosign verify --cert <PlainSigner certificate> ttl.sh/${IMAGE_NAME}:1h
 ```
 or
 ```shell
-cosign verify –-key <PlainSigner public key> ttl.sh/${IMAGE_NAME}:1h
+cosign verify --key <PlainSigner public key> ttl.sh/${IMAGE_NAME}:1h
 ```
