@@ -18,9 +18,27 @@ kubectl create secret generic ingress-ca --from-file=ca.crt=ManagementCA.pem -n 
 
 ## Install SignServer​ Helm Chart
 
-Edit helm chart values.yaml file:
+Edit signserver-ce-helm-meetup/values.yaml file:
 ```shell
-vi signserver-ce-helm-meetup/values.yaml
+signserver:
+  logLevelApp: INFO
+  useProxyAjpBind: true
+  useProxyHttpBind: false
+  managementCaSecret: ingress-ca
+  useH2Database: false
+  # Keystore files can be mounted for use with SignServer crypto workers
+  importKeystore: true
+  keystoreMountPath: /mnt/external
+  keystores:
+    - keystore: sample_signer_keystore.p12
+```
+
+```shell
+  hosts:
+    - host: "<Your EC2 Instance>"
+      paths:
+        - path: /signserver/
+          pathType: Prefix
 ```
 
 Install SignServer with Helm:
