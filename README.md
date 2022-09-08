@@ -32,7 +32,7 @@ helm repo update
 
 ```shell
 kubectl create namespace signserver
-kubectl create secret generic ca-secret --from-file=ca.crt=ManagementCA.pem --namespace signserver
+kubectl create secret generic ingress-ca --from-file=ca.crt=ManagementCA.pem --namespace signserver
 ```
 
 3. Install `signserver-ce-helm-meetup` on the Kubernetes cluster:
